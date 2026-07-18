@@ -37,3 +37,15 @@
     50% { opacity: 1; transform: scale(1.2); }
     100% { opacity: 0.2; transform: scale(0.8); }
 }
+/* --- 前回のコードの下にこれを追加 --- */
+
+/* おしゃれなスワイプインジケーター（光の走るアニメーション） */
+@keyframes swipe-flow {
+    0% { transform: translateX(-150%); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateX(250%); opacity: 0; }
+}
+.swipe-glow {
+    animation: swipe-flow 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
