@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Yusei+Magic&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+
+.font-japanese {
+    font-family: 'Noto Sans JP', 'Yusei Magic', sans-serif;
+}
+
+/* より高度なグラスモーフィズム */
+.glass-panel {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* リアルな物理ボタン（アーケード筐体風） */
+.shave-btn-base {
+    box-shadow: 
+        0 15px 0 #450a0a, 
+        0 25px 30px rgba(0,0,0,0.8), 
+        inset 0 10px 20px rgba(255,255,255,0.5),
+        inset 0 -5px 15px rgba(0,0,0,0.5);
+    transform: translateY(0) rotateX(10deg);
+    transition: all 0.08s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.shave-btn-active {
+    box-shadow: 
+        0 3px 0 #2c0606, 
+        0 8px 15px rgba(0,0,0,0.9), 
+        inset 0 15px 25px rgba(0,0,0,0.7);
+    transform: translateY(12px) rotateX(10deg);
+}
+
+/* 氷のキラキラエフェクト用 (Canvas外の装飾にも使える) */
+@keyframes shimmer {
+    0% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 0.2; transform: scale(0.8); }
+}
