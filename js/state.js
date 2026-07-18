@@ -1,12 +1,10 @@
-// js/state.js
-
 export const CONFIG = {
     GRID_SIZE: 40,
     CELL_SIZE: 7,
     PERSPECTIVE_X: 1.6,
     PERSPECTIVE_Y: 0.55,
     HEIGHT_SCALE: 1.5,
-    TARGET_VOL: 12000 // ボリューム上限を増加
+    TARGET_VOL: 12000
 };
 
 export const BOWL_RADIUS = (CONFIG.GRID_SIZE / 2) * CONFIG.CELL_SIZE - 15;
@@ -21,7 +19,7 @@ export const state = {
     totalVolume: 0,
     hasCollapsed: false,
     maxSlope: 0,
-    balanceOffset: 0, // 新規：-1.0 (左) 〜 1.0 (右) の重心ズレ
+    balanceOffset: 0,
     
     heightMap: [],
     cells: [],

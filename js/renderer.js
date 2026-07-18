@@ -1,4 +1,3 @@
-// js/renderer.js
 import { CONFIG, state, BOWL_RADIUS } from './state.js';
 
 export function draw(ctx, canvas) {
@@ -13,7 +12,6 @@ export function draw(ctx, canvas) {
 
     drawBowlBack(ctx);
 
-    // 1. かき氷の山（きめ細やかな質感）
     for (let cell of state.cells) {
         if (cell.distSq > BOWL_RADIUS * BOWL_RADIUS || cell.h <= 0) continue;
         let sx = state.cx + cell.wx * CONFIG.PERSPECTIVE_X;
@@ -23,7 +21,6 @@ export function draw(ctx, canvas) {
         let lighting = (cell.wx - cell.wz) / (BOWL_RADIUS * 2); 
         let brightness = 235 + lighting * 20; 
         
-        // ふわふわ感を出すためのグラデーションと細い描画
         let w = CONFIG.CELL_SIZE * CONFIG.PERSPECTIVE_X * 1.5; 
         
         let radGrad = ctx.createRadialGradient(sx, top_y, 0, sx, top_y, w/1.2);
@@ -33,11 +30,9 @@ export function draw(ctx, canvas) {
         ctx.fillStyle = radGrad;
         ctx.beginPath(); ctx.arc(sx, top_y, w/1.2, 0, Math.PI*2); ctx.fill();
         
-        // 下の柱部分を柔らかく
         ctx.fillStyle = `rgba(${brightness-20}, ${brightness-10}, ${brightness+10}, 0.5)`;
         ctx.fillRect(sx - w/2.5, top_y, w/1.25, cell.h * CONFIG.HEIGHT_SCALE);
 
-        // 氷の表面のキラキラ（小さな結晶ドット）
         if (Math.random() < 0.15) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.fillRect(sx + (Math.random()-0.5)*w, top_y + (Math.random()-0.5)*w, 1.5, 1.5);
@@ -46,13 +41,12 @@ export function draw(ctx, canvas) {
 
     drawBowlFront(ctx);
 
-    // 2. 降る氷（粒をより細かく）
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
     for (let p of state.fallingParticles) {
         let sx = state.cx + p.wx * CONFIG.PERSPECTIVE_X;
         let sy = state.cy + p.wz * CONFIG.PERSPECTIVE_Y - p.wy * CONFIG.HEIGHT_SCALE;
         ctx.beginPath();
-        let r = 1.5 + Math.random()*2; // 小さく細かく
+        let r = 1.5 + Math.random()*2;
         ctx.arc(sx, sy, r, 0, Math.PI*2);
         ctx.fill();
     }
@@ -66,7 +60,6 @@ export function draw(ctx, canvas) {
     drawSparkles(ctx);
 }
 
-// 高級キャストアイアン風 かき氷機
 function drawMachine(ctx) {
     ctx.save();
     
@@ -79,9 +72,8 @@ function drawMachine(ctx) {
     ctx.fillStyle = '#020617'; 
     ctx.fillRect(-120, -110, 240, 240);
 
-    // --- 【アップデート】回転する透明な氷ブロック (サイズ固定 ＆ 光沢・ツヤ・キラキラ) ---
     ctx.save();
-    let iceH = 170; // 減らさず固定サイズ
+    let iceH = 170; 
     ctx.translate(0, 130 - iceH/2); 
     
     let w = 170;
@@ -90,50 +82,41 @@ function drawMachine(ctx) {
     
     let w1 = cos * w; let w2 = sin * w;
 
-    // 面1の光沢グラデーション
     let grad1 = ctx.createLinearGradient(-w1/2, 0, w1/2, 0);
     grad1.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
     grad1.addColorStop(0.2, 'rgba(200, 240, 255, 0.15)');
     grad1.addColorStop(0.8, 'rgba(200, 240, 255, 0.05)');
     grad1.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
     
-    // 面2の光沢グラデーション
     let grad2 = ctx.createLinearGradient(-w2/2, 0, w2/2, 0);
     grad2.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
     grad2.addColorStop(0.5, 'rgba(200, 240, 255, 0.2)');
     grad2.addColorStop(1, 'rgba(255, 255, 255, 0.5)');
 
-    // 面の描画
     ctx.fillStyle = grad1; ctx.fillRect(-w1/2, -iceH/2, w1, iceH);
     ctx.fillStyle = grad2; ctx.fillRect(-w2/2, -iceH/2, w2, iceH);
 
-    // 氷の内部のクラック（ひび割れ）
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(-30, -50); ctx.lineTo(10, 20); ctx.lineTo(-20, 60); ctx.lineTo(15, 80);
     ctx.stroke();
 
-    // 強烈なハイライト（蛍光灯や光の反射）
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.fillRect(-w1/2 + 8, -iceH/2 + 10, 10, iceH - 20);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.fillRect(-w2/2 + 20, -iceH/2 + 15, 4, iceH - 30);
 
-    // 氷の外枠のエッジ
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
     ctx.lineWidth = 2;
     ctx.strokeRect(-w1/2, -iceH/2, w1, iceH);
     ctx.strokeRect(-w2/2, -iceH/2, w2, iceH);
     
-    // 氷の上下のフタ（断面）
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.beginPath(); ctx.ellipse(0, -iceH/2, w/2, 15, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.ellipse(0, iceH/2, w/2, 15, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
     ctx.restore();
-    // -----------------------------------------------------------------------------
 
-    // 氷を押さえる金属円盤とシャフト (真鍮/ゴールド)
     let diskY = 130 - iceH; 
     ctx.fillStyle = '#b45309'; 
     ctx.beginPath(); ctx.ellipse(0, diskY, 80, 25, 0, 0, Math.PI*2); ctx.fill();
@@ -147,7 +130,6 @@ function drawMachine(ctx) {
         ctx.beginPath(); ctx.moveTo(-12, y); ctx.lineTo(12, y+6); ctx.stroke();
     }
 
-    // マシン前面フレーム
     ctx.fillStyle = '#334155'; 
     ctx.beginPath(); ctx.roundRect(-150, -250, 300, 120, {tl: 50, tr: 50, bl: 0, br: 0}); ctx.fill();
     
@@ -166,7 +148,6 @@ function drawMachine(ctx) {
     ctx.fillStyle = '#1e293b';
     ctx.beginPath(); ctx.roundRect(-40, 178, 80, 30, {bl: 20, br: 20}); ctx.fill();
 
-    // 巨大サイド手回しホイール
     ctx.save();
     ctx.translate(-170, -100); 
     ctx.scale(0.35, 1.0); 
@@ -198,8 +179,6 @@ function drawMachine(ctx) {
     ctx.restore();
 }
 
-// ---------------------------------------------------------
-// これ以下の器やキラキラ描画のコードは前回と同じです
 function drawBowlBack(ctx) {
     let R_X = BOWL_RADIUS * CONFIG.PERSPECTIVE_X + 25;
     let R_Y = BOWL_RADIUS * CONFIG.PERSPECTIVE_Y + 20;

@@ -1,4 +1,3 @@
-// js/physics.js
 import { CONFIG, state, BOWL_RADIUS } from './state.js';
 
 export function updatePhysics() {
@@ -7,18 +6,16 @@ export function updatePhysics() {
     if (state.isShaving && !state.hasCollapsed) {
         state.iceBlockAngle -= 0.15; 
         
-        // 削る量を大幅増加＆意図的に右奥へ偏らせる
         for (let i = 0; i < 20; i++) {
-            // 落下範囲を中心ではなく、意図的にオフセット（偏り）を持たせる
             let r = Math.random() * 25;
             let theta = (Math.random() - 0.5) * Math.PI; 
-            let offsetX = 25 + r * Math.cos(theta); // 意図的に右側に降らす
+            let offsetX = 25 + r * Math.cos(theta); 
             let offsetZ = 15 + r * Math.sin(theta);
             
             state.fallingParticles.push({
                 wx: offsetX,
                 wz: offsetZ,
-                wy: 450, // マシンの位置を高くしたので落下開始位置も高く
+                wy: 450, 
                 vx: (Math.random() - 0.5) * 2,
                 vz: (Math.random() - 0.5) * 2,
                 vy: -15 - Math.random() * 8
@@ -50,7 +47,7 @@ export function updatePhysics() {
         if (gx >= 0 && gx < CONFIG.GRID_SIZE && gz >= 0 && gz < CONFIG.GRID_SIZE) {
             if (state.cells.find(c => c.x === gx && c.z === gz).distSq <= BOWL_RADIUS * BOWL_RADIUS) {
                 if (p.wy <= state.heightMap[gx][gz]) {
-                    state.heightMap[gx][gz] += 2.5; // 積もるスピードUP
+                    state.heightMap[gx][gz] += 2.5;
                     state.totalVolume += 2.5;
                     landed = true;
                 }
@@ -61,7 +58,6 @@ export function updatePhysics() {
     }
     state.fallingParticles = activeParticles;
 
-    // 雪崩シミュレーションと重心計算
     let newMap = new Array(CONFIG.GRID_SIZE).fill(0).map((_, i) => new Float32Array(state.heightMap[i]));
     state.maxSlope = 0; 
     let localMaxHeight = 0;
@@ -73,8 +69,6 @@ export function updatePhysics() {
             if (h <= 0) continue;
             
             if (h > localMaxHeight) localMaxHeight = h;
-            
-            // 重心計算（水平器UIのため）
             weightX += (x - CONFIG.GRID_SIZE/2) * h;
 
             let reposeAngle = Math.max(4, 25 - (h / 30));
@@ -95,13 +89,10 @@ export function updatePhysics() {
     }
     state.heightMap = newMap;
 
-    // 重心ズレの計算 (-1.0 〜 1.0 に正規化)
     let cmX = state.totalVolume > 0 ? (weightX / state.totalVolume) : 0;
     state.balanceOffset = cmX / 12.0; 
     state.balanceOffset = Math.max(-1, Math.min(1, state.balanceOffset));
 
-    // 崩落判定（超シビア設定：盛りすぎ or 重心ズレ大）
-    // 重心が大きくズレている かつ 一定量削っていると倒れる
     if (!state.hasCollapsed && state.totalVolume > 2000) {
         if (Math.abs(cmX) > 6.0 || localMaxHeight > 300) {
             triggerCollapse();
@@ -134,7 +125,7 @@ export function triggerCollapse() {
         for (let z = 0; z < CONFIG.GRID_SIZE; z++) {
             let h = state.heightMap[x][z];
             if (h > 40) {
-                state.heightMap[x][z] = h * 0.3; // 激しく崩落
+                state.heightMap[x][z] = h * 0.3;
                 if (Math.random() < 0.3) {
                     let lx = (x - CONFIG.GRID_SIZE/2) * CONFIG.CELL_SIZE;
                     let lz = (z - CONFIG.GRID_SIZE/2) * CONFIG.CELL_SIZE;

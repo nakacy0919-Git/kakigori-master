@@ -1,22 +1,31 @@
-// js/main.js
 import { CONFIG, state, initCells } from './state.js';
 import { updatePhysics } from './physics.js';
 import { draw } from './renderer.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d', { alpha: false });
+
 const shaveSound = document.getElementById('shave-sound');
+const bgmSound = document.getElementById('bgm-sound');
+bgmSound.volume = 0.4; 
 
 const shaveBtn = document.getElementById('shave-btn');
 const finishBtn = document.getElementById('finish-btn');
 const rotationPad = document.getElementById('rotation-pad');
-const bubble = document.getElementById('balance-bubble'); // 水平器の気泡
+const bubble = document.getElementById('balance-bubble');
+
+const bgmToggleBtn = document.getElementById('bgm-toggle-btn');
+const iconSoundOn = document.getElementById('icon-sound-on');
+const iconSoundOff = document.getElementById('icon-sound-off');
+
+let isBgmPlaying = false;
+let bgmInitialized = false;
 
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     state.cx = canvas.width / 2;
-    state.cy = canvas.height * 0.8; // 下部に余裕を持たせる
+    state.cy = canvas.height * 0.8;
 }
 window.addEventListener('resize', resize);
 resize();
@@ -24,6 +33,36 @@ initCells();
 
 function playSound() { if(shaveSound.paused) { shaveSound.currentTime = 0; shaveSound.play().catch(()=>{}); } }
 function stopSound() { shaveSound.pause(); }
+
+function toggleBgm() {
+    if (isBgmPlaying) {
+        bgmSound.pause();
+        isBgmPlaying = false;
+        iconSoundOn.classList.add('hidden');
+        iconSoundOff.classList.remove('hidden');
+    } else {
+        bgmSound.play().catch(e => console.log("BGM play failed", e));
+        isBgmPlaying = true;
+        bgmInitialized = true;
+        iconSoundOn.classList.remove('hidden');
+        iconSoundOff.classList.add('hidden');
+    }
+}
+
+bgmToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleBgm();
+});
+
+function initAudioOnFirstInteraction() {
+    if (!bgmInitialized && !isBgmPlaying) {
+        toggleBgm();
+    }
+    document.body.removeEventListener('click', initAudioOnFirstInteraction);
+    document.body.removeEventListener('touchstart', initAudioOnFirstInteraction);
+}
+document.body.addEventListener('click', initAudioOnFirstInteraction);
+document.body.addEventListener('touchstart', initAudioOnFirstInteraction, { passive: true });
 
 function startShave(e) {
     if (e && e.cancelable) e.preventDefault();
@@ -58,7 +97,7 @@ rotationPad.addEventListener('touchmove', (e) => {
     e.preventDefault(); 
     let currentX = e.changedTouches[0].clientX;
     let dx = currentX - lastTouchX;
-    state.bowlAngle -= dx * 0.02; // スワイプ感度を少しアップ
+    state.bowlAngle -= dx * 0.02; 
     lastTouchX = currentX;
 }, {passive: false});
 rotationPad.addEventListener('touchend', () => lastTouchX = null);
@@ -67,10 +106,25 @@ finishBtn.addEventListener('click', () => { if (state.gameState === 'PLAYING') f
 
 document.getElementById('start-btn').addEventListener('click', () => {
     shaveSound.play().then(() => shaveSound.pause()).catch(() => {});
-    document.getElementById('start-screen').style.opacity = '0';
-    document.getElementById('start-screen').style.pointerEvents = 'none';
-    document.getElementById('ui-layer').classList.remove('hidden');
-    setTimeout(() => { document.getElementById('ui-layer').style.opacity = '1'; startGame(); }, 100);
+    
+    const panels = document.querySelectorAll('.noren-panel');
+    if (panels.length >= 3) {
+        panels[0].classList.add('noren-open-left');
+        panels[1].classList.add('noren-open-center');
+        panels[2].classList.add('noren-open-right');
+    }
+
+    setTimeout(() => {
+        const startScreen = document.getElementById('start-screen');
+        startScreen.style.opacity = '0';
+        startScreen.style.pointerEvents = 'none';
+        document.getElementById('ui-layer').classList.remove('hidden');
+        
+        setTimeout(() => { 
+            document.getElementById('ui-layer').style.opacity = '1'; 
+            startGame(); 
+        }, 600);
+    }, 800);
 });
 
 document.getElementById('retry-btn').addEventListener('click', () => {
@@ -103,14 +157,11 @@ function updateUI() {
     if (state.gameState !== 'PLAYING') return;
     document.getElementById('volume-text').innerText = `Vol: ${Math.floor(state.totalVolume)}`;
     
-    // 水平器の気泡を重心オフセットに連動させて動かす
     if (bubble) {
-        // -1.0(左端) 〜 1.0(右端) を % に変換 (50% が中央)
         let percentX = 50 + (state.balanceOffset * 50);
-        percentX = Math.max(5, Math.min(95, percentX)); // 画面外に振り切れないように制限
+        percentX = Math.max(5, Math.min(95, percentX)); 
         bubble.style.left = `${percentX}%`;
 
-        // 危険領域で気泡を赤くする
         if (Math.abs(state.balanceOffset) > 0.6) {
             bubble.className = "absolute w-6 h-6 rounded-full bg-gradient-to-br from-red-400 to-red-600 shadow-[0_0_15px_rgba(239,68,68,0.9)] top-1/2 transform -translate-y-1/2 -translate-x-1/2 transition-all duration-75 ease-out z-10 border border-white/50";
         } else {
@@ -149,7 +200,7 @@ function finishGame() {
 
     let totalScore = Math.round(volScore + heightScore + balanceScore);
     if (state.hasCollapsed) {
-        totalScore = Math.floor(totalScore * 0.2); // 崩壊ペナルティをさらに強化
+        totalScore = Math.floor(totalScore * 0.2); 
         document.getElementById('penalty-stamp').style.opacity = '1';
     }
 
