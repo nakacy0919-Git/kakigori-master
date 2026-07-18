@@ -5,13 +5,26 @@ import { draw } from './renderer.js';
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d', { alpha: false });
 
+// サウンド関連
 const shaveSound = document.getElementById('shave-sound');
 const bgmSound = document.getElementById('bgm-sound');
+const finishSound = document.getElementById('finish-sound'); // 終了音を追加
 bgmSound.volume = 0.4; 
+
+// ★削る音の強制ループ処理 (iPadの途切れ対策)
+shaveSound.loop = true;
+shaveSound.addEventListener('ended', () => {
+    if (state.isShaving) {
+        shaveSound.currentTime = 0;
+        shaveSound.play().catch(()=>{});
+    }
+});
 
 const shaveBtn = document.getElementById('shave-btn');
 const finishBtn = document.getElementById('finish-btn');
 const rotationPad = document.getElementById('rotation-pad');
+const movePad = document.getElementById('move-pad');
+const moveThumb = document.getElementById('move-thumb');
 const bubble = document.getElementById('balance-bubble');
 
 const bgmToggleBtn = document.getElementById('bgm-toggle-btn');
@@ -31,7 +44,12 @@ window.addEventListener('resize', resize);
 resize();
 initCells();
 
-function playSound() { if(shaveSound.paused) { shaveSound.currentTime = 0; shaveSound.play().catch(()=>{}); } }
+function playSound() { 
+    if(shaveSound.paused) { 
+        shaveSound.currentTime = 0; 
+        shaveSound.play().catch(()=>{}); 
+    } 
+}
 function stopSound() { shaveSound.pause(); }
 
 function toggleBgm() {
@@ -49,20 +67,19 @@ function toggleBgm() {
     }
 }
 
-bgmToggleBtn.addEventListener('click', (e) => {
+bgmToggleBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
     e.stopPropagation();
     toggleBgm();
 });
 
 function initAudioOnFirstInteraction() {
-    if (!bgmInitialized && !isBgmPlaying) {
-        toggleBgm();
-    }
-    document.body.removeEventListener('click', initAudioOnFirstInteraction);
-    document.body.removeEventListener('touchstart', initAudioOnFirstInteraction);
+    if (!bgmInitialized && !isBgmPlaying) toggleBgm();
+    // ユーザーインタラクション時にAudioContextをアンロック
+    if(finishSound) finishSound.play().then(()=>finishSound.pause()).catch(()=>{});
+    document.body.removeEventListener('pointerdown', initAudioOnFirstInteraction);
 }
-document.body.addEventListener('click', initAudioOnFirstInteraction);
-document.body.addEventListener('touchstart', initAudioOnFirstInteraction, { passive: true });
+document.body.addEventListener('pointerdown', initAudioOnFirstInteraction, { passive: true });
 
 function startShave(e) {
     if (e && e.cancelable) e.preventDefault();
@@ -81,30 +98,69 @@ function stopShave(e) {
     stopSound();
 }
 
-shaveBtn.addEventListener('mousedown', startShave);
-shaveBtn.addEventListener('touchstart', startShave, {passive: false});
-window.addEventListener('mouseup', stopShave);
-window.addEventListener('touchend', stopShave);
+shaveBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+shaveBtn.addEventListener('pointerdown', startShave);
+window.addEventListener('pointerup', stopShave);
+window.addEventListener('pointercancel', stopShave);
 
 let lastTouchX = null;
-rotationPad.addEventListener('touchstart', (e) => {
+rotationPad.addEventListener('pointerdown', (e) => {
     if (state.gameState !== 'PLAYING') return;
-    lastTouchX = e.changedTouches[0].clientX;
-}, {passive: true});
-
-rotationPad.addEventListener('touchmove', (e) => {
+    lastTouchX = e.clientX;
+    rotationPad.setPointerCapture(e.pointerId); 
+});
+rotationPad.addEventListener('pointermove', (e) => {
     if (state.gameState !== 'PLAYING' || lastTouchX === null) return;
     e.preventDefault(); 
-    let currentX = e.changedTouches[0].clientX;
+    let currentX = e.clientX;
     let dx = currentX - lastTouchX;
     state.bowlAngle -= dx * 0.02; 
     lastTouchX = currentX;
-}, {passive: false});
-rotationPad.addEventListener('touchend', () => lastTouchX = null);
+});
+rotationPad.addEventListener('pointerup', () => lastTouchX = null);
+rotationPad.addEventListener('pointercancel', () => lastTouchX = null);
 
-finishBtn.addEventListener('click', () => { if (state.gameState === 'PLAYING') finishGame(); });
+let isMovingBowl = false;
+let moveStartX = 0; let moveStartY = 0;
+let initialBowlX = 0; let initialBowlZ = 0;
 
-document.getElementById('start-btn').addEventListener('click', () => {
+movePad.addEventListener('pointerdown', (e) => {
+    if (state.gameState !== 'PLAYING') return;
+    isMovingBowl = true;
+    moveStartX = e.clientX; moveStartY = e.clientY;
+    initialBowlX = state.bowlX; initialBowlZ = state.bowlZ;
+    movePad.setPointerCapture(e.pointerId);
+    moveThumb.classList.add('scale-125');
+});
+movePad.addEventListener('pointermove', (e) => {
+    if (!isMovingBowl || state.gameState !== 'PLAYING') return;
+    e.preventDefault();
+    let dx = e.clientX - moveStartX; let dy = e.clientY - moveStartY;
+    state.bowlX = initialBowlX + dx * 0.6; state.bowlZ = initialBowlZ + dy * 0.6;
+    const MAX_DIST = 70;
+    if (state.bowlX > MAX_DIST) state.bowlX = MAX_DIST;
+    if (state.bowlX < -MAX_DIST) state.bowlX = -MAX_DIST;
+    if (state.bowlZ > MAX_DIST) state.bowlZ = MAX_DIST;
+    if (state.bowlZ < -MAX_DIST) state.bowlZ = -MAX_DIST;
+
+    let visualX = (state.bowlX / MAX_DIST) * 36;
+    let visualY = (state.bowlZ / MAX_DIST) * 36;
+    moveThumb.style.transform = `translate(${visualX}px, ${visualY}px)`;
+});
+function endMove() {
+    isMovingBowl = false;
+    moveThumb.classList.remove('scale-125');
+}
+movePad.addEventListener('pointerup', endMove);
+movePad.addEventListener('pointercancel', endMove);
+
+finishBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (state.gameState === 'PLAYING') finishGame(); 
+});
+
+document.getElementById('start-btn').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
     shaveSound.play().then(() => shaveSound.pause()).catch(() => {});
     
     const panels = document.querySelectorAll('.noren-panel');
@@ -127,12 +183,48 @@ document.getElementById('start-btn').addEventListener('click', () => {
     }, 800);
 });
 
-document.getElementById('retry-btn').addEventListener('click', () => {
+document.getElementById('retry-btn').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
     document.getElementById('result-screen').style.opacity = '0';
     document.getElementById('result-screen').style.pointerEvents = 'none';
     document.getElementById('retry-btn').style.pointerEvents = 'none';
+    
+    // 紙吹雪をクリーンアップ
+    document.querySelectorAll('.confetti-piece').forEach(el => el.remove());
+    
     startGame();
 });
+
+// ★派手な紙吹雪アニメーション生成関数
+function launchConfetti() {
+    const container = document.getElementById('result-screen');
+    const colors = ['#fde047', '#38bdf8', '#fb7185', '#34d399', '#a78bfa', '#ffffff'];
+    
+    for (let i = 0; i < 150; i++) {
+        let conf = document.createElement('div');
+        conf.className = 'confetti-piece rounded-sm';
+        
+        // ランダムなサイズと色
+        let size = Math.random() * 8 + 6;
+        conf.style.width = `${size}px`;
+        conf.style.height = `${size * 1.5}px`;
+        conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // ランダムな配置とアニメーション
+        conf.style.left = `${Math.random() * 100}%`;
+        conf.style.top = `-10%`;
+        
+        let duration = Math.random() * 3 + 3; // 3〜6秒
+        let delay = Math.random() * 2; // 0〜2秒の遅延
+        let drift = (Math.random() - 0.5) * 400; // 左右への散らばり
+        
+        conf.style.setProperty('--drift', `${drift}px`);
+        conf.style.animation = `confetti-fall ${duration}s ease-in ${delay}s infinite`; // 無限に降り続ける
+        
+        // モーダルウィンドウのすぐ後ろに配置
+        container.insertBefore(conf, document.getElementById('result-modal'));
+    }
+}
 
 function startGame() {
     state.gameState = 'PLAYING';
@@ -145,6 +237,9 @@ function startGame() {
     state.fallingParticles = [];
     state.effectParticles = [];
     state.sparkles = [];
+    
+    state.bowlX = 0; state.bowlZ = 0;
+    if (moveThumb) moveThumb.style.transform = `translate(0px, 0px)`;
     
     for (let x = 0; x < CONFIG.GRID_SIZE; x++) {
         for (let z = 0; z < CONFIG.GRID_SIZE; z++) { state.heightMap[x][z] = 0; }
@@ -173,6 +268,12 @@ function updateUI() {
 function finishGame() {
     state.gameState = 'RESULT';
     stopSound();
+    
+    // ★終了音の再生
+    if (finishSound) {
+        finishSound.currentTime = 0;
+        finishSound.play().catch(()=>{});
+    }
     
     let maxH = 0; let weightX = 0, weightZ = 0, actualVol = 0;
     for (let x=0; x<CONFIG.GRID_SIZE; x++) {
@@ -213,6 +314,11 @@ function finishGame() {
     document.getElementById('score-balance').innerText = `${Math.round(balanceScore)} / 40`;
     document.getElementById('score-total').innerText = `${totalScore} 点`;
     document.getElementById('rank-display').innerText = rank;
+
+    // ★Aランク以上なら紙吹雪を打ち上げる
+    if (['SS', 'S', 'A'].includes(rank) && !state.hasCollapsed) {
+        launchConfetti();
+    }
 
     const screen = document.getElementById('result-screen');
     const modal = document.getElementById('result-modal');

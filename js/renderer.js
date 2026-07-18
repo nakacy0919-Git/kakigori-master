@@ -10,12 +10,16 @@ export function draw(ctx, canvas) {
     }
     state.cells.sort((a, b) => a.wz - b.wz);
 
-    drawBowlBack(ctx);
+    // 器の現在のスクリーン座標を計算
+    let sbx = state.cx + state.bowlX * CONFIG.PERSPECTIVE_X;
+    let sby = state.cy + state.bowlZ * CONFIG.PERSPECTIVE_Y;
+
+    drawBowlBack(ctx, sbx, sby);
 
     for (let cell of state.cells) {
         if (cell.distSq > BOWL_RADIUS * BOWL_RADIUS || cell.h <= 0) continue;
-        let sx = state.cx + cell.wx * CONFIG.PERSPECTIVE_X;
-        let base_y = state.cy + cell.wz * CONFIG.PERSPECTIVE_Y;
+        let sx = sbx + cell.wx * CONFIG.PERSPECTIVE_X;
+        let base_y = sby + cell.wz * CONFIG.PERSPECTIVE_Y;
         let top_y = base_y - cell.h * CONFIG.HEIGHT_SCALE;
         
         let lighting = (cell.wx - cell.wz) / (BOWL_RADIUS * 2); 
@@ -39,7 +43,7 @@ export function draw(ctx, canvas) {
         }
     }
 
-    drawBowlFront(ctx);
+    drawBowlFront(ctx, sbx, sby);
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
     for (let p of state.fallingParticles) {
@@ -179,24 +183,24 @@ function drawMachine(ctx) {
     ctx.restore();
 }
 
-function drawBowlBack(ctx) {
+function drawBowlBack(ctx, bx, by) {
     let R_X = BOWL_RADIUS * CONFIG.PERSPECTIVE_X + 25;
     let R_Y = BOWL_RADIUS * CONFIG.PERSPECTIVE_Y + 20;
     ctx.strokeStyle = 'rgba(200, 240, 255, 0.2)';
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(state.cx, state.cy - 10, R_X, R_Y, 0, Math.PI, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(bx, by - 10, R_X, R_Y, 0, Math.PI, Math.PI*2); ctx.stroke();
     ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-    ctx.beginPath(); ctx.ellipse(state.cx, state.cy - 10, R_X, R_Y, 0, Math.PI, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bx, by - 10, R_X, R_Y, 0, Math.PI, Math.PI*2); ctx.fill();
 }
 
-function drawBowlFront(ctx) {
+function drawBowlFront(ctx, bx, by) {
     let R_X = BOWL_RADIUS * CONFIG.PERSPECTIVE_X + 25;
     let R_Y = BOWL_RADIUS * CONFIG.PERSPECTIVE_Y + 20;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
     ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.ellipse(state.cx, state.cy - 10, R_X, R_Y, 0, 0, Math.PI); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(bx, by - 10, R_X, R_Y, 0, 0, Math.PI); ctx.stroke();
 
-    let grad = ctx.createLinearGradient(state.cx - R_X, 0, state.cx + R_X, 0);
+    let grad = ctx.createLinearGradient(bx - R_X, 0, bx + R_X, 0);
     grad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
     grad.addColorStop(0.1, 'rgba(255, 255, 255, 0.0)');
     grad.addColorStop(0.9, 'rgba(255, 255, 255, 0.0)');
@@ -204,21 +208,21 @@ function drawBowlFront(ctx) {
     
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.ellipse(state.cx, state.cy - 10, R_X, R_Y, 0, 0, Math.PI);
-    ctx.lineTo(state.cx - R_X * 0.4, state.cy + 80);
-    ctx.ellipse(state.cx, state.cy + 80, R_X * 0.4, R_Y * 0.4, 0, Math.PI, 0, true);
-    ctx.lineTo(state.cx + R_X, state.cy - 10);
+    ctx.ellipse(bx, by - 10, R_X, R_Y, 0, 0, Math.PI);
+    ctx.lineTo(bx - R_X * 0.4, by + 80);
+    ctx.ellipse(bx, by + 80, R_X * 0.4, R_Y * 0.4, 0, Math.PI, 0, true);
+    ctx.lineTo(bx + R_X, by - 10);
     ctx.fill();
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.ellipse(state.cx - R_X*0.6, state.cy + 30, R_X*0.1, R_Y*0.9, Math.PI/8, 0, Math.PI); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(bx - R_X*0.6, by + 30, R_X*0.1, R_Y*0.9, Math.PI/8, 0, Math.PI); ctx.stroke();
 
     ctx.fillStyle = 'rgba(200, 240, 255, 0.15)';
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(state.cx, state.cy + 80, R_X * 0.4, R_Y * 0.4, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(state.cx, state.cy + 100, R_X * 0.55, R_Y * 0.55, 0, 0, Math.PI*2); ctx.stroke(); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bx, by + 80, R_X * 0.4, R_Y * 0.4, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(bx, by + 100, R_X * 0.55, R_Y * 0.55, 0, 0, Math.PI*2); ctx.stroke(); ctx.fill();
 }
 
 function drawSparkles(ctx) {

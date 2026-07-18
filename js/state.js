@@ -15,6 +15,8 @@ export const state = {
     gameState: 'START',
     isShaving: false,
     bowlAngle: 0,
+    bowlX: 0, // 新規: 器のX座標移動
+    bowlZ: 0, // 新規: 器のZ座標移動
     iceBlockAngle: 0,
     totalVolume: 0,
     hasCollapsed: false,

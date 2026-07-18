@@ -1,5 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Yusei+Magic&family=Noto+Sans+JP:wght@400;700;900&display=swap');
 
+/* ここから追加：iPadの長押しメニュー、選択、タップハイライトを完全に無効化 */
+* {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+/* ここまで追加 */
+
 .font-japanese {
     font-family: 'Noto Sans JP', 'Yusei Magic', sans-serif;
 }
@@ -70,4 +79,24 @@
 .cinematic-text {
     animation: cinematic-fade-in 4s ease-out forwards;
     animation-delay: 0.8s;
+}
+/* --- 前回のコードの下にこれを追加 --- */
+
+/* 派手な紙吹雪（クリア演出） */
+.confetti-piece {
+    position: absolute;
+    z-index: 0; /* モーダル(z-10)の後ろ、背景(z--30)の前に配置 */
+    pointer-events: none;
+    opacity: 0;
+}
+
+@keyframes confetti-fall {
+    0% { 
+        transform: translate3d(0, 0, 0) rotateZ(0deg) rotateY(0deg); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: translate3d(var(--drift), 120vh, 0) rotateZ(720deg) rotateY(720deg); 
+        opacity: 0; 
+    }
 }

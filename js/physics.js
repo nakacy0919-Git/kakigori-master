@@ -9,6 +9,7 @@ export function updatePhysics() {
         for (let i = 0; i < 20; i++) {
             let r = Math.random() * 25;
             let theta = (Math.random() - 0.5) * Math.PI; 
+            // 氷は右奥(X=25, Z=15)付近へ意図的に偏って落下します
             let offsetX = 25 + r * Math.cos(theta); 
             let offsetZ = 15 + r * Math.sin(theta);
             
@@ -38,8 +39,13 @@ export function updatePhysics() {
     for (let p of state.fallingParticles) {
         p.wx += p.vx; p.wz += p.vz; p.wy += p.vy;
 
-        let lx = p.wx * cosA - p.wz * sinA;
-        let lz = p.wx * sinA + p.wz * cosA;
+        // 器の移動位置（bowlX, bowlZ）を考慮したローカル座標への変換
+        let dx = p.wx - state.bowlX;
+        let dz = p.wz - state.bowlZ;
+
+        let lx = dx * cosA - dz * sinA;
+        let lz = dx * sinA + dz * cosA;
+        
         let gx = Math.floor(lx / CONFIG.CELL_SIZE) + CONFIG.GRID_SIZE / 2;
         let gz = Math.floor(lz / CONFIG.CELL_SIZE) + CONFIG.GRID_SIZE / 2;
 
@@ -129,8 +135,10 @@ export function triggerCollapse() {
                 if (Math.random() < 0.3) {
                     let lx = (x - CONFIG.GRID_SIZE/2) * CONFIG.CELL_SIZE;
                     let lz = (z - CONFIG.GRID_SIZE/2) * CONFIG.CELL_SIZE;
-                    let wx = lx * Math.cos(state.bowlAngle) - lz * Math.sin(state.bowlAngle);
-                    let wz = lx * Math.sin(state.bowlAngle) + lz * Math.cos(state.bowlAngle);
+                    // 崩壊時のエフェクトをワールド座標（器の位置込み）へ戻す
+                    let wx = lx * Math.cos(state.bowlAngle) - lz * Math.sin(state.bowlAngle) + state.bowlX;
+                    let wz = lx * Math.sin(state.bowlAngle) + lz * Math.cos(state.bowlAngle) + state.bowlZ;
+                    
                     state.effectParticles.push({
                         x: state.cx + wx * CONFIG.PERSPECTIVE_X, 
                         y: state.cy + wz * CONFIG.PERSPECTIVE_Y - h * CONFIG.HEIGHT_SCALE,
